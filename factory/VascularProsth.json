@@ -1,0 +1,9 @@
+{
+	"name": "VascularProsth",
+	"location": "westeurope",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "d9606013-480d-4c1c-8233-a67fb80203f6",
+		"tenantId": "9a2a85ea-7bdd-4a41-a8fa-4c3e2a35c82b"
+	}
+}
