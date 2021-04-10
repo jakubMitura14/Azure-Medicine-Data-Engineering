@@ -1,0 +1,53 @@
+{
+	"name": "twoPointTimeStudy",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "AnonimizedPhdRawData - 2point (3).tsv",
+				"folderPath": "dataExcel",
+				"container": "mainblob"
+			},
+			"columnDelimiter": "\t",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "\t\t\t\tPłeć\tGrupa kontrolna\tRok urodzenia\tData badania\twiek w momencie badania\tData operacji\twiek w momencie operacji\tczas od operacji do obrazowania w latach\tPowód operacji\tPowód operacji - tętniak\tPowód operacji - miażdżyca - głównie zespół Leriche'a\tPowód operacji inny\tzakażenie poprzedniej protezy\tnieznany\tGlikemia\tPodana aktywność\tLokalizacja Graftu\tuproszczona klasyfikacja\tMateriał\tRodzaj protezy\tRodzaj protezy - opis dodatkowy\tOB (6 mcy)\tGorączka\t\tbolesność okolicy protezy\twidoczny zewnętrzny obrzęk\tucieplenie\tinne objawy\tCRP(6 mcy)\tWBC(6 mcy)\tatybiotyki \tatybiotyki jeśli tak od kiedy i co\twynik posiewu z protezy\twynik posiewu z protezy\tinne posiewy\tproteza dodatni\tproteza ujemny\trana +\trana -\tprzetoka +\tprzetoka - \tkrew +\tkrew -\treoperacje - 1 jeśli tak  ?\tznane protezy udowo podkolanowe\tReoperacje (co)\t\tWcześniej operowany w danym miejsu\tznana klinicznie zakrzepica w \tOpis interesującego miejsca w innych badaniach obrazowych np. w CT\tobecność skrzepliny\ttętniak\tpęcherzyki powietrza\ttętniak rzekomy\tpogrubienie ściany aorty\tniedrożność jednego z ramion\tposzerzenie w obrębie zespolenia\tnaciek zapalny\twzmożenie densyjności tkanek w okolicy protezy\tprzetoka\tpłyn wokół protezy\tCT bez zmian\tobecność przetoki pachwinowej\tzgon\tReoperacje (ilość)\tinfekcje w okresie okołooperacyjnym\tcukrzyca\tchoroby przebyte i przewlekłe\tnowotwory (jeśli tak to jaki)\tNikotynizm\tAlkoholizm\tOtyłość\tinne choroby\tinne informacje\tchromanie przestankowe\tlokalizacja ogniska podwyższonego gromadzenia\tlok - aorta brzuszna\tokolica rozwidlenia\tlewe ramię\tprawe ramię\tłuk aorty\taorta wstępująca - cała\taorta wstępująca przyzastawkowo\taorta zstępująca\tna wysokości spojenia łonowego\tSUV (max) w miejscu zapalenia\tSUV (max) tła\tSUV (średni ) w żyle głównej górnej (Bowles ",
+				"type": "String"
+			},
+			{
+				"name": " Ambrosioni 2018) \tocena wzrokowa wg. 5 stopniowej skali (Skala według WG SAH - patrz metodologia )   łagodny(mniej niż 2- krotny blood pool aorty wstępującej) silny (przynajmniej 2- krotny blood pool aorty wstępującej)  (dodatnie - 3 ",
+				"type": "String"
+			},
+			{
+				"name": "4",
+				"type": "String"
+			},
+			{
+				"name": "5)\tocena wzrokowa wg. 3 stopniowej (Bowles ",
+				"type": "String"
+			},
+			{
+				"name": " Ambrosioni 2018; ProstheticVascularGraftKeidar ) (dodatnie - 1 i 2)\tNieregularne zarysy\tOgniskowe gromadzenie znacznika\tPęcherzyki gazu \tSkrzeplina w okolicy miejsca podejrzanego o zapalenie\tObszar płynowy w okolicy\twysięk",
+				"type": "String"
+			},
+			{
+				"name": " obrzęk",
+				"type": "String"
+			},
+			{
+				"name": " zatarcie zarysów tkanki tłuszczowej\tNaciek zapalny w okolicy\tprzetoka ropna\ttętniak rzekomy\tblaszka miażdżycowa w okolicy zapalenia\taktywne metabolicznie węzły chłonne w okolicy\tReoperacje (co)\tinne posiewy\ttumor to background ratio\ttyp obrazu 1 tylko ogniskowo; 2 rozlany  i ogniskowy; 3 tragedia",
+				"type": "String"
+			}
+		]
+	}
+}
