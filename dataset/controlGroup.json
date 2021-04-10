@@ -1,5 +1,5 @@
 {
-	"name": "studyGroupCSV",
+	"name": "controlGroup",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "AzureBlobStorage1",
@@ -10,7 +10,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobStorageLocation",
-				"fileName": "AnonimizedPhdRawData - Liczba odpowiedzi_ 1 (7).tsv",
+				"fileName": "AnonimizedPhdRawData - contrGroup (9).tsv",
 				"folderPath": "dataExcel",
 				"container": "mainblob"
 			},
