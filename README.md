@@ -156,7 +156,51 @@ One more important step to complete before applying statistical analysis is to p
 2) presence or absence of outliers in this case measured with z score 
 3) wheathe numerical data is within manually defined bounds (that are set on the basis of domain knowledge)
 
-For obvius reasons the columns and bounds needed to be chosen manually, all of the results would be saved into the delta table
+For obvius reasons the columns and bounds needed to be chosen manually, all of the results would be saved into the delta table. The functions that are used in order to achieved are stored in utils notebook and also presented below
+
+```
+/**
+*@description check weather given value is within given numerical constraintsif not appends to the report table
+*@param frame Dataframe from which we want to get data to check weather they are in given constraints
+*@param columnNames list of column names that we want to test 
+*@param lowerTreshold  lower treshold of acceptable values
+*@param upperTreshold upper treshold of acceptable values
+*@return list of tripples where first entry is specyfing what is wrong in this function hardcoded as "outside of the range" ; than column name and numer of records that are not in accepted range
+*/
+def countOutsideTheRange(frame : DataFrame ,columnNames : List[String] ,lowerTreshold : Double , upperTreshold : Double ) :List[(String,String,Long)] = {
+  return columnNames.map(colName=> ("outside of the range", colName, frame.select(col(colName)).where(s""" `$colName` < $lowerTreshold OR  `$colName` > $upperTreshold  """).count() ) )}
+
+
+/**
+*@description check weather given value is not null
+*@param frame Dataframe from which we want to get data to check weather they are in given constraints
+*@param columnNames list of column names that we want to test 
+*@param lowerTreshold  lower treshold of acceptable values
+*@param upperTreshold upper treshold of acceptable values
+*@return list of tripples where first entry is specyfing what is wrong in this function hardcoded as "number of null values" ; than column name and numer of records that are null
+*/
+def countHowManyNulls(frame : DataFrame ,columnNames : List[String] ) :List[(String,String,Long)] = {
+  return columnNames.map(colName=> ("number of null values", colName, frame.select(col(colName)).where(isnull(col(colName))).count() ) )  
+}
+
+/**
+*@description  check weather the z score of given column is above or below 3 
+*@param frame Dataframe from which we want to get data to check weather we have outliers
+*@param columnNames list of column names that we want to test 
+*@return list of tripples where first entry is specyfing what is wrong in this function hardcoded as "oultlier number" ; than column name and numer of records that are outliers according to the z score
+*/
+def countOutliersOfZscore (frame : DataFrame ,columnNames : List[String] ) :List[(String,String,Long)] = {
+return columnNames.map{colName=> 
+  val outliersnumb = frame
+  .withColumn("mean",avg(s"$colName").over())
+  .withColumn("stddev",callUDF("stddev_pop",col(s"$colName")).over())
+  .withColumn("z-score",(col(s"$colName")-$"mean")/$"stddev") 
+  .where(" `z-score` >3 OR `z-score` < (-3)" ).count()
+ ("oultlier number", colName,outliersnumb   )
+}
+}
+
+```
 
 
 
