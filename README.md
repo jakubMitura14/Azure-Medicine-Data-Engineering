@@ -142,6 +142,8 @@ val primListt =  listOfCols.map(colName=> s""" lower(string(`$colName`)) = "${tr
 return spark.sql("select "+ (primListt ++ frame.columns.filterNot(it=>listOfCols.contains(it)).map(it=>s"`${it}`") ).mkString(",") + s"from $frameName")
   
 }
+```
+
 
 this will be applied to manually defined inside the databricks notebooks steps pointed out on the picture below
 
@@ -158,10 +160,6 @@ For obvius reasons the columns and bounds needed to be chosen manually, all of t
 
 
 
-
-
-
-```
 
 
 
