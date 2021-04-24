@@ -57,9 +57,111 @@ Next we need to copy data from datasets to appropriate CSV files (databricks are
 
 ![image](https://user-images.githubusercontent.com/53857487/115960489-ff3ac200-a511-11eb-9aed-ee36e6ea68fd.png)
 
+### outputData from copy data activity
+
+In order to  parse corretly the data that we have we formatted the output datasets (output from copy data activity)
+
+
+![image](https://user-images.githubusercontent.com/53857487/115965234-7d09c800-a528-11eb-9adb-10d464dccbe6.png)
+
+
+The effect of this operation is to put into linked blob storage the proper files 
+
+![image](https://user-images.githubusercontent.com/53857487/115965356-251f9100-a529-11eb-9ebb-c281c879fb7a.png)
+
+##  Databricks blob integration
+
+Now we nheed to connect the Databricks into our blob storage the access to the azure keyvoult was already established hence we will use it here
+First we need to define all necessary constance
+```
+val containerName = "mainblob"
+val storageAccountName = "vascpathstorage"
+val key = dbutils.secrets.get(scope= "myblobkv", key = "stor2")
+
+val url = "wasbs://" + containerName + "@" + storageAccountName + ".blob.core.windows.net/"
+var config = "fs.azure.account.key." + storageAccountName + ".blob.core.windows.net"
+
+```
+Then If storage is not yet mounted we mount it
+
+```
+val myMountPoint = "/mnt/myblob"
+
+if(!dbutils.fs.mounts().map(it=>it.mountPoint).contains(myMountPoint)){
+dbutils.fs.mount(
+  mountPoint =myMountPoint,
+  source = url,
+  extraConfigs = Map(config -> key))
+
+}
+display(dbutils.fs.ls("/mnt/myblob"))
+
+```
+
+
+In the end to access the necessary file we can use the function from utils notebook 
+
+```
+def myImportFile(fileName : String) : DataFrame =  {
+return spark.read.
+    format("csv").
+    option("header", "true").
+    option("delimiter", "\t").
+    option("header", "true").
+    option("inferSchema", "true").load("dbfs:/mnt/myblob/" + fileName)
+}
+
+```
+
+#  Data Cleaning
+
+In order to deal with irregularities of data we need to properly parse the columns as shown below (functions can be found also in utils files)
+
+```
+  /*
+*@description it takes dataframe some column list that should be modified and casts it after some preparation to new type
+*@param frame source frame that we want to change
+*@param columnList list of column names we want to modify
+*@param castTo string representing the type to which we want to cast given functions
+*@param prepareFunction what we need to do with the values that we already have in order to be able to cast it to target values we assume that the value that we work on is always String
+* A - type to which we want modify the values in given columns
+*@return new dataframe where the values in given columns have proper class
+*/
+def advancedCasting(frame: DataFrame, columnList: List[String], castTo:String, prepareFunction : (String)=>Column) : DataFrame = {
+  return frame.select(frame.columns.map{c => if(columnList.contains(c)){prepareFunction(c).cast(castTo).as(c)} else {col(c)}}    :_*)
+}
+/**
+*@description given old dataframe it applies transformation changes te column to boolean with boolean true if the value of a column equals trueString when value is null it stays null
+*@param frameName name of frame which we want to modify
+*@param frame source frame that we want to change
+*@param trueString if the column value is equal to this it will be true
+*@param listOfCols list of columns names that we want to modify
+*/
+def booleanCastingIfString (frame : DataFrame, frameName : String, trueString : String,listOfCols : List[String] ) : DataFrame = {
+val primListt =  listOfCols.map(colName=> s""" lower(string(`$colName`)) = "${trueString}" as  `$colName` """)
+return spark.sql("select "+ (primListt ++ frame.columns.filterNot(it=>listOfCols.contains(it)).map(it=>s"`${it}`") ).mkString(",") + s"from $frameName")
+  
+}
+
+this will be applied to manually defined inside the databricks notebooks steps pointed out on the picture below
+
+![image](https://user-images.githubusercontent.com/53857487/115966448-e50edd00-a52d-11eb-8ca8-99ccb7297946.png)
+
+
+# Data quality and outliers
+One more important step to complete before applying statistical analysis is to properly asses the quality of data  
+1) the amount of null values in columns where it should not be present
+2) presence or absence of outliers in this case measured with z score 
+3) wheathe numerical data is within manually defined bounds (that are set on the basis of domain knowledge)
+
+For obvius reasons the columns and bounds needed to be chosen manually, all of the results would be saved into the delta table
 
 
 
+
+
+
+```
 
 
 
