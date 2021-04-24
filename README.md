@@ -202,8 +202,123 @@ return columnNames.map{colName=>
 
 ```
 
+# Data Summaries
+
+Now when data is prepared summeries will be created  in order to achieve this goal multiple utility functions were defined
+
+```
+*table names with given desctiption will also be added to the myPhdStatistics meta data
+so what is importan it will also create appropriate delta table
+*@patam tableName name of table
+*@param tableDescription String that will be recorded in metadata and that will represent the description of data about this table
+*@param frameWithData dataframe with data we calculated
+*/
+def createTablesWithMeta (tableName: String, tableDescription : String, frameWithData : DataFrame) {
+  //below we are creating new metadata frame as union of old data we use union to avoid duplicates
+   spark.sparkContext.parallelize( Seq( (tableName, tableDescription) //first we add data about the frame itself
+  )).toDF("tableName", "tableDescription")
+  .withColumn("time_stamp", current_timestamp())// we also add the timestamp of uploading the data
+  .union(spark.read.table("myPhdStatisticsMetaData")) // union with data that was already there
+  .write.mode("overwrite").format("delta").saveAsTable("myPhdStatisticsMetaData") // ovewriting old table as the data is not lost 
+  //  and we write the frame itself to delta table
+  frameWithData.write.mode("overwrite").format("delta").option("mergeSchema", "true").saveAsTable(tableName)  
+}
+
+/**
+*@description most of the summaries will be described after dividing it into diffrent categories like type of vascular prosthesis, its localisation and pattern of image 
+so we will have as a paramater list of aggregation functions and we will apply those first over all of the data in given columns and then over partitions genereted by supplied categorical columns
+*@patam tableName name of table
+*@param tableDescription String that will be recorded in metadata and that will represent the description of data about this table
+*@param frameWithData dataframe with data we calculated
+*@param listOfAggr list of aggregation functions and added name that will be applied to all specified columns 
+*@param analyzedColumnNames list of names we are intrested in to check and how we want to name appropriate columns (the first in a tuple list will be column names and second a  new name for coluimn summarizing ... )
+*@param categoriesColumnNames list of column names with categorical data that we will use to generate divisons data will be stored in tuples where first part will be name of the column and second the string that will be added to the row where data about those divisions is added
+*/
+def createTableCategorized (tableName: String,tableDescription: String, frameWithData : DataFrame, listOfAggr : List[(Column=>Column, String)], analyzedColumnNames : List[(String, String)], categoriesColumnNames : List[(String, String)]) {
+
+ val categorized =  (List(("All","All")) ++categoriesColumnNames).map{categoryInfo=>  
+    listOfAggr.map{ locAggr=>// aggregation function and the name of this aggregation 
+   frameWithData.select( setModificationToCol (categoryInfo, locAggr,analyzedColumnNames )
+                       :_*).distinct()   }//end listOfAggr
+    }.flatten.reduce((a,b)=> a.union(b))// we accumulate all frames
+  display(categorized)
+  createTablesWithMeta(tableName,tableDescription,categorized )
+}
 
 
+/**
+helper function to createTableCategorized it will create list of columns objects that will be used in select statement
+*@param categoryInfo tuple with name of the column with the category  and its description
+*@param locAggr method of aggregation and its description
+*@param analyzedColumnNames list of names we are intrested in to check and how we want to name appropriate columns (the first in a tuple list will be column names and second a  new name for coluimn summarizing ... )
+*@return return list of column objects 
+*/
+def setModificationToCol (categoryInfo : (String, String), locAggr: (Column=>Column, String), analyzedColumnNames : List[(String, String)] ) : Seq[Column] = {
+       //we need to return diffrent thing in case we are in All category
+      if(categoryInfo._1!="All"){
+       return (Seq(lit(categoryInfo._2).as("Division"),
+      col(categoryInfo._1).as("DivisionCategory"),
+      lit(locAggr._2).as("aggregation")) ++       
+      analyzedColumnNames.map(colNameInfo=>  locAggr._1(    col(colNameInfo._1) )  //applying aggregations
+                                                       .over(Window.partitionBy(categoryInfo._1) )  //defining window over which we will execute aggregation functions if it is not empty if it is we basically do nothing with window as this mean we want to get all   
+                                                         .as(colNameInfo._2)))// renaming
+                                } else{
+      return(Seq( lit("All").as("Division"),
+     lit("All").as("DivisionCategory"),
+      lit(locAggr._2).as("aggregation")) ++ 
+      analyzedColumnNames.map(colNameInfo=>  locAggr._1(    col(colNameInfo._1) )  //applying aggregations
+                                                        .as(colNameInfo._2)))// renaming
+        
+      }                     
+  
+}
+
+/********************  simple casted column functions   *****************************/
+
+//percentile_approx from https://www.programmersought.com/article/34051525009/
+
+  def percentile_approx(col: Column, percentage: Column, accuracy: Column): Column = {
+    val expr = new ApproximatePercentile(
+      col.expr,  percentage.expr, accuracy.expr
+    ).toAggregateExpression
+    new Column(expr)
+  }
+  def percentile_approx(col: Column, percentage: Column): Column = percentile_approx(
+    col, percentage, lit(ApproximatePercentile.DEFAULT_PERCENTILE_ACCURACY)
+  )
+
+
+
+//the table is immaterial here
+//val anyDataFrame =  spark.table("myPhdStatisticsMetaData")
+def  myColumnMedian (c : Column) : Column =  percentile_approx(c, lit(0.5))
+def mySum (c : Column) : Column = sum(c)
+    
+def  myCountTrues (c : Column) : Column = sum(regexp_replace(regexp_replace(c , lit(true), lit(1)),  lit(false), lit(0)))
+
+def myColumnMin (c : Column) : Column = functions.min(c)
+ def myColumnMax (c : Column) : Column = functions.max(c)
+def  myCount (c : Column) : Column = count(c)// wrapper to get around compiler uncertainity
+
+
+```
+Basically depending on the context multiple features were analyzed and compared  divided ussually on the basis of some categorical data like for example visual scales described in dedical literature, below example of such aggregation. Also as can be seen in the utility functions  all data will be saved to the respective delta tables and metadata about those tables will also be aggregated in meta data delta table. Example of such aggregation below where we compare the SUV max and tumor to background ration in control and study groups. All of the analyzed  features can be found in dataSummaries1 notebook.
+
+
+```
+createTableCategorized(tableName = "SuvVsVisualScalesControlGroup", 
+                       tableDescription= "Analysis Of Suv in Study Group categorised on visual scales in control group", 
+                       frameWithData= dfContr
+                       .withColumn("TBR", col("SUV protezy")/col("tło"))
+                       .withColumn("Evrybody", lit(1))
+                       , listOfAggr = List((mySum _ , "sum"),(myColumnMedian _, "median") )
+                       ,analyzedColumnNames= List(("SUV protezy", "SuvInFocus"), 
+                                                  ("tło","SuvInBackground"), ("Evrybody","Evrybody"),
+                                                  ("TBR", "TBR")
+                                                 )
+                       , categoriesColumnNames = List(("skala5Stopnie","FivePointScale"), ("skala3Stopnie","ThreePointScale"))
+                       )
+```
 
 
 
