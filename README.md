@@ -32,9 +32,11 @@ most important secrets are to DataBricks and storage
 ## DataBricks integration
 In order to enable integration of Databricks with azure keyvoult we need a premium account and also access the create scope in the Databricks via pasting appropriate url as shown below
 
-![image](https://user-images.githubusercontent.com/53857487/115957822-eb3c9380-a504-11eb-944b-e73f4fea745e.png)
+![image](https://user-images.githubusercontent.com/53857487/115957830-07d8cb80-a505-11eb-9a0f-eb05fe62fc5b.png)
 
+after passing appropriate vault Uri and resource id we get information confirming success
 
+![image](https://user-images.githubusercontent.com/53857487/115958081-255a6500-a506-11eb-9ed1-8252302e4585.png)
 
 # Information Flow
 Information is stored in blob container in a storage Account, as data is in clinical setting written into excel files this is a data that is uploaded 
