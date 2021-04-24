@@ -39,6 +39,34 @@ after passing appropriate vault Uri and resource id we get information confirmin
 ![image](https://user-images.githubusercontent.com/53857487/115958081-255a6500-a506-11eb-9ed1-8252302e4585.png)
 
 # Information Flow
+## storage
 Information is stored in blob container in a storage Account, as data is in clinical setting written into excel files this is a data that is uploaded 
 ![image](https://user-images.githubusercontent.com/53857487/115954365-ea016b80-a4f0-11eb-902c-83b09aeeb703.png)
+
+## integration datasets
+Data from sheets that are intresting us is uploaded to the integration datasets  (we have 3 sheets that we have intrest in  sheet with data baout study group , with data about controll group, and about studies that were performed ) below shown example how such integration dataset is configured
+
+![image](https://user-images.githubusercontent.com/53857487/115960398-76bc2180-a511-11eb-874b-859a33a9fce8.png)
+
+
+## copy data
+Next we need to copy data from datasets to appropriate CSV files (databricks are configured to load csv). In order to achieve this we use copy data activity for each sheet, below example of configuration
+
+![image](https://user-images.githubusercontent.com/53857487/115960486-f944e100-a511-11eb-98f6-d68abdcadd9b.png)
+
+
+![image](https://user-images.githubusercontent.com/53857487/115960489-ff3ac200-a511-11eb-9aed-ee36e6ea68fd.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
