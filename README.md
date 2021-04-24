@@ -320,6 +320,188 @@ createTableCategorized(tableName = "SuvVsVisualScalesControlGroup",
                        )
 ```
 
+# Preparing data for Hypothesis testing and predictive statistics
+
+Some a bit more complicated aggregations are performed in HypothesisTestingPrediction notebook for example below we are standardizing column names between study and control groups in order to be able to later efficiently compare diffrences in characteristics of those groups
+
+```
+val colsInControl = List(                         ("SUV protezy", "SuvInFocus"), 
+                                                  ("TBR", "TBR"),    
+                                                 ("typ", "simplifiedClassification"  ),
+                                                   ("stentgraft czy proteza" , "prosthesisType"),
+                         ("ageInYearsWhenSurgery","ageInYearsWhenSurgery"), ("Płeć", "gender")
+                                                 ).map(it=> col(it._1).as(it._2))
+
+                                      
+                         
+
+
+
+
+
+val colsInStudy = List(                           ("SUV (max) w miejscu zapalenia", "SuvInFocus"), 
+                                                  ("tumor to background ratio", "TBR"),
+                                                  ("simplifiedClassification", "simplifiedClassification"  ),
+                                                   ("prosthesisType" , "prosthesisType"),
+                         ("ageInYearsWhenSurgery","ageInYearsWhenSurgery"), ("Płeć", "gender")
+                                                 ).map(it=> col(it._1).as(it._2))
+
+val controlFram = dfContr.withColumn("TBR", col("SUV protezy")/col("tło"))
+                         .withColumn("isStudy", lit(0))
+                         .withColumn("ageInYearsWhenSurgery",year(col("data wszczepienia stentgraftu"))- col("Rok z peselu"))
+                          .select( (List(col("isStudy")) ++ colsInControl ):_* )// adding column for reference wheather it is study or controll group
+                          
+                          
+val studyFrame = dfStudy.withColumn("isStudy", lit(1)) // adding column for reference wheather it is study or controll group
+                       .withColumn("ageInYearsWhenSurgery",months_between(col("Data operacji"),col("Rok urodzenia")  )/12)
+   .withColumn( "prosthesisType",           regexp_replace(
+                        regexp_replace(  col("Rodzaj protezy"),   "StentGraft" ,"stentgraft" )    ,
+                      "Proteza" ,"proteza" ) 
+                         )                   
+
+.withColumn(  "simplifiedClassification",          regexp_replace(
+                        regexp_replace(  col("uproszczona klasyfikacja"),   "ob. nacz. biodrowe" ,"Y" )  ,  
+                      "aorty piersiowej" ,"B" ) 
+                        )    
+
+.select(  (List(col("isStudy")) ++ colsInStudy ):_* )
+
+
+val numbsFrame = (studyFrame.union(controlFram)).withColumn("isMale" , when(col("Gender")==="Mężczyzna", 1).otherwise(0)  )
+
+createTablesWithMeta ("contrAndStudyNumbsFrame", "Does age of patient during surgery , type of prosthesis  or its localisation is significantly diffrent between study and controll group Here We will  also collect SUV and TBR values in controll and study group so we will check the", numbsFrame)                         
+
+
+
+```
+
+
+# Hypothesis testing
+Hypothesis testing was performed in R as the libraries for hypothesis testing is richer in this enviroment, all of the code is available in "Hypothesis testing R" notebook .
+Multiple two sided hypotheses were tested using in most cases non parametric permutation tasts with structure‐adaptive Benjamini–Hochberg algorithm [1] (algorithm copied from authors repository). 
+
+```
+# based on the implementation from perm test https://cran.r-project.org/web/packages/perm/perm.pdf
+myPermTest <- function(booleansColName, numbVectorColName, frame) {
+  framee <-  frame %>% dplyr::select(booleansColName,numbVectorColName)  %>% dplyr::filter( !is.na(.[1]))%>% dplyr::filter( !is.na(.[2]))   
+  numbVector <- framee[[numbVectorColName]]
+  booleans<- framee[[booleansColName]]
+  
+trueOnes <-numbVector[booleans]
+falseOnes <-numbVector[!booleans]
+if(length(falseOnes)>1){
+permTS(trueOnes , falseOnes)$p.values[1][["p.twosided"]]   } else{2}
+
+}
+#myPermTest("FocalAccumulation", "SuvInFocus", imagingFrame)
+
+
+#Implementation of structure aware BH we supply p values and labels both vectors should be of the same length
+myBH <- function (pValues,labels) {
+n = length(pValues) # here important  we need to 
+BH_Res = Storey_Res = SABHA_Res = rep(0,n)
+
+############## set of parameters copied from fMRI example
+alpha = 0.05 # target FDR level
+tau = 0.5; eps = 0.1 # parameters for SABHA
+ADMM_params = c(10^2, 10^3, 2, 15000, 1e-3) # alpha_ADMM,beta,eta,max_iters,converge_thr
+
+# gather results
+labels[SABHA_Res ==1]
+
+
+qhat = Solve_q_block(pValues,tau,eps,labels,ADMM_params)
+
+# it returns a vector with the same order as supplied at the beginning in this vecto when we did not achieved significance we get 0 when we did we get 1
+SABHA_Res[SABHA_method(pValues,qhat,alpha,tau)] = 1
+#selecting from labels those that are significantly significant 
+
+labels[SABHA_Res ==1]
+}
+
+```
+
+permanova function was also attempted yet becouse of results of beta dispersion the results were not included
+
+```
+# performing the Permanova - method detecting weather there is a relation between some value and group of other values
+# We will also check First the beta dispersion  to say weather it is sufficiently small in order to be able to still in a valid way perworm permanova
+# @param mainFrame {DataFrame} representin all data we are analyzing
+# @param referenceColumnName {String} name of column to which we want to check weather it has a significant correlation with all other columns (so reference column holds dependent variable)
+# returns {List} return p value of permanova and p value related of beta dispersion in order for the test to be valid we need 
+myPermanova <- function (mainFrame,referenceColumnName) {
+reducedFr <-  mainFrame %>% dplyr::select(-all_of(referenceColumnName)) # %>% as.matrix() %>% sqrt() # square root transformation in order to reduce the effect of strongest values
+
+  parmaNov<-adonis(reducedFr ~ mainFrame[[referenceColumnName]], perm=999)
+  #calculating permanova p value 
+  permanovaPValue <- as.data.frame(as.data.frame(parmaNov$aov.tab)[6])[1,1]
+
+  dist<-vegdist(reducedFr, method='jaccard')
+  dispersion<-betadisper(dist, group=mainFrame[[referenceColumnName]])
+  
+  c(permanovaPValue, permutest(dispersion) )
+  
+  
+}
+
+```
+In case of the binary data to perform hypothesis fisher test was used
+
+The analysis of optimal treshold cut off value of SUV max and TBR was also performed, minimizing both false postive and false negative results in this clinical setting was considered equally important.
+
+```
+#SUV max analysis
+trueOnesSUV <-controlVsStudyFrame$SuvInFocus[controlVsStudyFrame$isStudy]
+falseOnesSUV <-controlVsStudyFrame$SuvInFocus[!controlVsStudyFrame$isStudy]
+#TBR analysis
+trueOnesTBR <-controlVsStudyFrame$TBR[controlVsStudyFrame$isStudy]
+falseOnesTBR <-controlVsStudyFrame$TBR[!controlVsStudyFrame$isStudy]
+
+tresholdSuv<- thres2(trueOnesSUV,falseOnesSUV,0.01 )[[1]]$thres
+tresholdTBR<- thres2(trueOnesTBR,falseOnesTBR,0.01 )[[1]]$thres
+
+```
+
+Additionaly associative rules were analyzed to establish important coocurences of imaging characteristics in study group 
+
+```
+rules<- apriori(trans,parameter=list(supp=0.3,conf=.80, minlen=3,maxlen=7, target='rules')) # run a priori algorithms
+arules<-rules
+```
+
+# Machine Learning
+Predictive statistics was performed using decision tree model and scikit learn in azure ML. Additionally in order to make a model axplainable the feature importance was analyzed using appropriate software packages.
+
+All of the modelling was performed in azere ML using Jupiter notebook and Python(3.6 or 3.8). 
+
+First data was futher preapared to properly deal with categorical data and null values
+
+```
+def prepareFrame (df):
+    #filling nulls with mean
+    df= df.fillna(df.mean())
+
+    # Normalize the numeric columns
+    scaler = MinMaxScaler()
+    num_cols = ['SuvInFocus','TBR','ageInYearsWhenSurgery']
+    df[num_cols] = scaler.fit_transform(df[num_cols])
+    #setting categorical columns to boolean  - as here we basically care only about two columns
+    df.loc[df['prosthesisType'] == "stentgraft", 'isStentgraft'] = True 
+    df.loc[df['simplifiedClassification'] == "Y", 'isY'] = True 
+
+    df.loc[df['prosthesisType'] != "stentgraft", 'isStentgraft'] = False 
+    df.loc[df['simplifiedClassification'] != "Y", 'isY'] = False 
+
+
+    df["isMale"] = df["isMale"].astype(bool)
+    return df
+
+
+mainPdFrame= pd.DataFrame(data= prepareFrame(mainPdFrame))
+mainPdFrame
+
+
+```
 
 
 
@@ -328,4 +510,6 @@ createTableCategorized(tableName = "SuvVsVisualScalesControlGroup",
 
 
 
+
+1.Li, A. and Barber, R.F. (2019), Multiple testing with the structure‐adaptive Benjamini–Hochberg algorithm. J. R. Stat. Soc. B, 81: 45-74. https://doi.org/10.1111/rssb.12298
 
