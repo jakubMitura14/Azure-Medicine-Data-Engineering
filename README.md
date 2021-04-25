@@ -1,13 +1,14 @@
-# Work in progress
 
 # Azure-Medicine-Data-Engineering
 ## basic description 
-Data science project based on data about patients with infected vascular grafts, and Azure tools (including DataBricks))
+Endd to end data science project based on data about patients with infected vascular grafts that was collected for my Phd as a nuclear medicine physycian, and Azure tools (including DataBricks)).
+The study is retrospective were both in control and study group the FDG-PET/CT was undertaken. In study group the infection of the vascular prosthesis was confirmed in the control group it was excluded.  In case of all patients the detailed data about their health records was collected, yet becouse of the retrospective nature of the study not all data was available. 
+
 ## Azure Synapse Analytics graph
 
 ![image](https://user-images.githubusercontent.com/53857487/115989538-2a2f1f80-a5bf-11eb-9ca8-8f0a6a84d815.png)
 
-As we see on the graph we first copy data from input (excel) file to a format that can be consumed by the databricks, databricks notebook first clean data than check its quality and look for any outliers,, to create data summaries and perform statistical hypothesis testing. It is also shown how the ML pipelinee can be connected, actual code of the jupiter notebook with model training will be described below.
+As we see on the graph we first copy data from input (excel file - the fomrat used in clinical practice)  to a format that can be consumed by the databricks, databricks notebook first clean data than check its quality and look for any outliers,, to create data summaries and perform statistical hypothesis testing. It is also shown how the ML pipelinee can be connected, actual code of the jupiter notebook with model training will be described below.
 
 
 
@@ -20,11 +21,6 @@ First step is to provide Access policies  for all required services like Synapse
 
 ![image](https://user-images.githubusercontent.com/53857487/115953879-59c22700-a4ee-11eb-9866-74976330c04d.png)
 
-
-## Secrets
-most important secrets are to DataBricks and storage
-
-##krowa
 
 ## DataBricks integration
 In order to enable integration of Databricks with azure keyvoult we need a premium account and also access the create scope in the Databricks via pasting appropriate url as shown below
@@ -321,7 +317,7 @@ def  myCount (c : Column) : Column = count(c)// wrapper to get around compiler u
 
 
 ```
-Basically depending on the context multiple features were analyzed and compared  divided ussually on the basis of some categorical data like for example visual scales described in dedical literature, below example of such aggregation. Also as can be seen in the utility functions  all data will be saved to the respective delta tables and metadata about those tables will also be aggregated in meta data delta table. Example of such aggregation below where we compare the SUV max and tumor to background ration in control and study groups. All of the analyzed  features can be found in dataSummaries1 notebook.
+Basically depending on the context multiple features were analyzed and compared  divided ussually on the basis of some categorical data like for example visual scales described in medical literature, below example of such aggregation. Also as can be seen in the utility functions  all data will be saved to the respective delta tables and metadata about those tables will also be aggregated in meta data delta table. Example of such aggregation below where we compare the SUV max and tumor to background ration in control and study groups. All of the analyzed  features can be found in dataSummaries1 notebook.
 
 
 ```
@@ -341,7 +337,7 @@ createTableCategorized(tableName = "SuvVsVisualScalesControlGroup",
 
 # Preparing data for Hypothesis testing and predictive statistics
 
-Some a bit more complicated aggregations are performed in HypothesisTestingPrediction notebook for example below we are standardizing column names between study and control groups in order to be able to later efficiently compare diffrences in characteristics of those groups
+Some a bit more complicated aggregations are performed in HypothesisTestingPrediction notebook for example below we are standardizing column names between study and control groups in order to be able to later efficiently compare diffrences in characteristics of those groups.
 
 ```
 val colsInControl = List(                         ("SUV protezy", "SuvInFocus"), 
@@ -464,7 +460,7 @@ reducedFr <-  mainFrame %>% dplyr::select(-all_of(referenceColumnName)) # %>% as
 }
 
 ```
-In case of the binary data to perform hypothesis fisher test was used
+In case of the binary data to perform hypothesis fisher test was used.
 
 The analysis of optimal treshold cut off value of SUV max and TBR was also performed, minimizing both false postive and false negative results in this clinical setting was considered equally important.
 
