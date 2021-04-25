@@ -706,6 +706,20 @@ run.wait_for_completion()
 
 ```
 
+![image](https://user-images.githubusercontent.com/53857487/115992254-ffe45e80-a5cc-11eb-888c-218ff6e1e0e0.png)
+
+```
+DecisionTreeClassifier(ccp_alpha=0.0, class_weight=None, criterion='gini',
+                       max_depth=5, max_features=None, max_leaf_nodes=None,
+                       min_impurity_decrease=Decimal('0.00005'),
+                       min_impurity_split=None, min_samples_leaf=1,
+                       min_samples_split=7, min_weight_fraction_leaf=0.0,
+                       presort='deprecated', random_state=None,
+                       splitter='best')
+```
+![image](https://user-images.githubusercontent.com/53857487/115992301-37eba180-a5cd-11eb-83fc-bf39d8391d89.png)
+
+
 ## Model interpretability
 
 In order to make model expleinable we choose optimal hyperparameters calculated in a previous step and using the TabularExplainer we are anylizing the features importance
@@ -761,9 +775,34 @@ for key, value in feature_importances.items():
 
 ```
 
+```
+Feature	Importance
+TBR 	 0.40010683760683763
+SuvInFocus 	 0.08764245014245015
+isMale 	 0.0
+ageInYearsWhenSurgery 	 0.0
+isY 	 0.0
+isStentgraft 	 0.0
+
+```
+
+
+![image](https://user-images.githubusercontent.com/53857487/115992320-5c477e00-a5cd-11eb-979e-493b31951eaf.png)
 
 
 
+# Visualizations in power Bi
+First we need to supply appropriate data for power bi to connect to data in databricks
+
+![image](https://user-images.githubusercontent.com/53857487/115992377-bb0cf780-a5cd-11eb-8edc-9ee9ac711ef3.png)
+
+
+![image](https://user-images.githubusercontent.com/53857487/115992382-c102d880-a5cd-11eb-9505-baa7d2944ae8.png)
+
+
+Below some example of powe Bi visualizations
+
+![image](https://user-images.githubusercontent.com/53857487/115993117-9fa3eb80-a5d1-11eb-9e89-6aeee838ebac.png)
 
 
 
