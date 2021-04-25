@@ -1,5 +1,5 @@
 
-# Azure FDG PET/T Data project
+# Azure FDG PET/CT Data project
 
 ## basic description 
 End to end data science, data engineering and data analysis project based on data about patients with infected vascular grafts that was collected for my Phd as a physycian working in Nuclear Medicine Clinic in Lublin Poland. Project was completef using Azure tools (including Azure DataBricks) and Scala, Python and R languages (and small sections in sparkSQL). In order to integrate various tools Azure Synapse Analytics was used.
