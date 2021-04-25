@@ -1,18 +1,20 @@
 {
-	"name": "AzureBlobStorage1",
+	"name": "AzureDatabricks1",
 	"type": "Microsoft.Synapse/workspaces/linkedservices",
 	"properties": {
 		"annotations": [],
-		"type": "AzureBlobStorage",
+		"type": "AzureDatabricks",
 		"typeProperties": {
-			"connectionString": {
+			"domain": "https://adb-8879125170027105.5.azuredatabricks.net",
+			"accessToken": {
 				"type": "AzureKeyVaultSecret",
 				"store": {
 					"referenceName": "AzureKeyVault1",
 					"type": "LinkedServiceReference"
 				},
-				"secretName": "storage"
-			}
+				"secretName": "dataBricksToken"
+			},
+			"existingClusterId": "0424-075532-great279"
 		},
 		"connectVia": {
 			"referenceName": "AutoResolveIntegrationRuntime",

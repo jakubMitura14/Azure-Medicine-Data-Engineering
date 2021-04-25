@@ -1,0 +1,20 @@
+{
+	"name": "AzureMLService1",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureMLService",
+		"typeProperties": {
+			"subscriptionId": "70e527bd-e1e5-4316-b6f7-402dab4cd224",
+			"resourceGroupName": "VascularProsth",
+			"mlWorkspaceName": "VascProsthML",
+			"servicePrincipalId": "398aeed6-36b1-4e32-98b6-e2d7373524f8",
+			"tenant": "9a2a85ea-7bdd-4a41-a8fa-4c3e2a35c82b",
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIlNZTkFQU0VWQVNDUFJPU1RIX2I1OTcyYjUyLTI4NmYtNGVmOS1hMDRlLWUyOTNhYzdmYzk5NCINCn0="
+		},
+		"connectVia": {
+			"referenceName": "AutoResolveIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
