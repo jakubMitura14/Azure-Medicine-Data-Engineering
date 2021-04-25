@@ -1,7 +1,7 @@
 
 # Azure-Medicine-Data-Engineering
 ## basic description 
-Endd to end data science project based on data about patients with infected vascular grafts that was collected for my Phd as a nuclear medicine physycian, and Azure tools (including DataBricks)).
+End to end data science, data engineering and data analysis project based on data about patients with infected vascular grafts that was collected for my Phd as a physycian working in Nuclear Medicine Clinic in Lublin Poland. Project was completef using Azure tools (including DataBricks)) and Scala, Python and R languages (and small sections in sparkSQL).
 The study is retrospective were both in control and study group the FDG-PET/CT was undertaken. In study group the infection of the vascular prosthesis was confirmed in the control group it was excluded.  In case of all patients the detailed data about their health records was collected, yet becouse of the retrospective nature of the study not all data was available. 
 
 ## Azure Synapse Analytics graph
