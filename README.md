@@ -46,6 +46,17 @@ all integrations needed in the azure synapse analytics are shown and summarized 
 
 ![image](https://user-images.githubusercontent.com/53857487/115989792-5eefa680-a5c0-11eb-8a93-c6e6a05e16fc.png)
 
+## github Integration
+
+Azure synapse Analytics was additionally integrated with this repository 
+![image](https://user-images.githubusercontent.com/53857487/115993697-38d40180-a5d4-11eb-9609-93568dccb1c8.png)
+
+Databricks Notebooks are also synchronized with Github 
+
+![image](https://user-images.githubusercontent.com/53857487/115994728-76d32480-a5d8-11eb-8d9a-134592f8c88c.png)
+
+
+
 # Information Flow
 ## storage
 Information is stored in blob container in a storage Account, as data is in clinical setting written into excel files this is a data that is uploaded 
