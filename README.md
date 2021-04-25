@@ -3,17 +3,14 @@
 # Azure-Medicine-Data-Engineering
 ## basic description 
 Data science project based on data about patients with infected vascular grafts, and Azure tools (including DataBricks))
-## Detailed plan
-* Uploading Data to Data lake
-  * The data Link of Azure Data Factory will be used
-* Data cleaning and preparation**  (this step will be done in the Databricks notebook that will upload data from data lake)
-  * upload the data into Databricks
-  * Remove all columns and rows that do not contain any data (only nulls)
-  * Check weather automatic casting of data type of columns was correct particularly looking into dates, and numeric data (risk that sometimes the floating point numbers can be represented with dot or comma) 
-  * futher in R we will define which of the columns are representing the categorical variables and we will define the accordingly 
-* Basic statistical analysis
-  * collect and summarize basic patient data like gender age ...
-  * anylyze how the radiologic signs are related to each other and to other analyzed variables 
+## Azure Synapse Analytics graph
+
+![image](https://user-images.githubusercontent.com/53857487/115989538-2a2f1f80-a5bf-11eb-9ca8-8f0a6a84d815.png)
+
+As we see on the graph we first copy data from input (excel) file to a format that can be consumed by the databricks, databricks notebook first clean data than check its quality and look for any outliers,, to create data summaries and perform statistical hypothesis testing. It is also shown how the ML pipelinee can be connected, actual code of the jupiter notebook with model training will be described below.
+
+
+
 
 # Key Vault
 In order to keep safely all keys all keys and certificates are stored in Azure Key vault 
@@ -37,6 +34,17 @@ In order to enable integration of Databricks with azure keyvoult we need a premi
 after passing appropriate vault Uri and resource id we get information confirming success
 
 ![image](https://user-images.githubusercontent.com/53857487/115958081-255a6500-a506-11eb-9ed1-8252302e4585.png)
+
+## Azure ML integration
+Data needed for integration of synapse analytics and azure machine learning can be accessed via cloud shell
+![image](https://user-images.githubusercontent.com/53857487/115988989-48475080-a5bc-11eb-89a1-646191a40e2f.png)
+
+![image](https://user-images.githubusercontent.com/53857487/115988993-4e3d3180-a5bc-11eb-9604-dc49413a6d08.png)
+
+## all integrations
+all integrations needed in the azure synapse analytics are shown and summarized on the printscreen below
+
+![image](https://user-images.githubusercontent.com/53857487/115989792-5eefa680-a5c0-11eb-8a93-c6e6a05e16fc.png)
 
 # Information Flow
 ## storage
@@ -502,6 +510,258 @@ mainPdFrame
 
 
 ```
+
+We need aslo to define the main code that will be then reused for hyperparameter tuning and for interpreting a model. This cell will create a parametrized python script that with given hyperparameters will train decision tree classifier with hyperparameters specified in parameters of script.
+
+```
+%%writefile $experiment_folder/vascProsth_training.py
+# this is important as this cell will be written to separate python file
+# Import libraries
+
+
+import argparse, joblib, os
+from azureml.core import Run
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import roc_auc_score, roc_curve
+from sklearn.preprocessing import MinMaxScaler
+
+from sklearn.tree import DecisionTreeClassifier
+
+
+
+
+def prepareFrame (df):
+    #filling nulls with mean
+    df= df.fillna(df.mean())
+
+    # Normalize the numeric columns
+    scaler = MinMaxScaler()
+    num_cols = ['SuvInFocus','TBR','ageInYearsWhenSurgery']
+    df[num_cols] = scaler.fit_transform(df[num_cols])
+    #setting categorical columns to boolean  - as here we basically care only about two columns
+    df.loc[df['prosthesisType'] == "stentgraft", 'isStentgraft'] = True 
+    df.loc[df['simplifiedClassification'] == "Y", 'isY'] = True 
+
+    df.loc[df['prosthesisType'] != "stentgraft", 'isStentgraft'] = False 
+    df.loc[df['simplifiedClassification'] != "Y", 'isY'] = False 
+
+
+    df["isMale"] = df["isMale"].astype(bool)
+    return df
+
+
+
+
+
+# Get the experiment run context
+run = Run.get_context()
+
+#learning_rate = 0.1
+#n_estimators =100
+
+################ part below to set arguments when this python file will be called
+
+# Get script arguments
+parser = argparse.ArgumentParser()
+
+# Input dataset
+parser.add_argument("--input-data", type=str, dest='input_data', help='training dataset')
+
+############ Hyperparameters
+
+
+#from https://medium.datadriveninvestor.com/decision-tree-adventures-2-explanation-of-decision-tree-classifier-parameters-84776f39a28
+#max_depth: int or None, optional (default=None) [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+
+
+#min_samples_split: int, float, optional (default=2) [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+
+
+#min_impurity_decrease   [0.00005,0.0001,0.0002,0.0005,0.001,0.0015,0.002,0.005,0.01]
+
+
+parser.add_argument('--max_depth', type=int, dest='max_depth', default=15, help='max_depth')
+parser.add_argument('--min_samples_split', type=int, dest='min_samples_split', default=2, help='min_samples_split')
+parser.add_argument('--min_impurity_decrease', type=float, dest='min_impurity_decrease', default=0.00005, help='min_impurity_decrease')
+parser.add_argument('--isToExplain', type=bool, dest='isToExplain', default=False , help='true if it is a model we want to interpret - the best model')
+
+# Add arguments to args collection
+args = parser.parse_args()
+
+
+
+mainPdFr = run.input_datasets['training_data'].to_pandas_dataframe() # Get the training data from the estimator input
+mainPdFr= prepareFrame(mainPdFr)
+#################### preapre data
+
+# Separate features and labels
+X, y = mainPdFr[
+    ['SuvInFocus','TBR','isStentgraft','isY','ageInYearsWhenSurgery'
+     ,'isMale']].values, mainPdFr['isStudy'].values
+
+# Split data into training set and test set
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=0)
+
+
+################ model
+model = DecisionTreeClassifier(max_depth =args.max_depth,
+                                min_samples_split= args.min_samples_split,
+                               min_impurity_decrease= args.min_impurity_decrease
+                                                       ).fit(X_train, y_train)
+
+
+########################## metrics
+
+
+# calculate accuracy
+y_hat = model.predict(X_test)
+acc = np.average(y_hat == y_test)
+print('Accuracy:', acc)
+run.log('Accuracy', np.float(acc))
+
+# calculate AUC
+y_scores = model.predict_proba(X_test)
+auc = roc_auc_score(y_test,y_scores[:,1])
+print('AUC: ' + str(auc))
+run.log('AUC', np.float(auc))
+
+######################## Save the model in the run outputs
+os.makedirs('outputs', exist_ok=True)
+joblib.dump(value=model, filename='outputs/vascProsth_model.pkl')
+
+########## explanations used only in best case
+if(args.isToExplain):
+    from interpret.ext.blackbox import TabularExplainer
+    import os, shutil
+    from azureml.interpret import ExplanationClient
+    # Get explanation
+    explainer = TabularExplainer(model, X_train, features=['SuvInFocus','TBR','isStentgraft','isY','ageInYearsWhenSurgery'
+         ,'isMale'], classes=['noInfection', 'infection'])
+    explanation = explainer.explain_global(X_test)
+
+    # Get an Explanation Client and upload the explanation
+    explain_client = ExplanationClient.from_run(run)
+    explain_client.upload_model_explanation(explanation, comment='Tabular Explanation')
+
+
+
+run.complete()
+```
+
+### Hyper parameter tuning
+
+After the compute target is established We will perform baysian hyperparameter tuning using the Azure ml library. We use an AUC as a model metric we consider false posiitive and false negative results in this clinical setting as equally undesirable.
+
+```
+# Create a Python environment for the experiment
+sklearn_env = Environment("sklearn-env")
+
+# Ensure the required packages are installed (we need scikit-learn, Azure ML defaults, and Azure ML dataprep)
+packages = CondaDependencies.create(conda_packages=['scikit-learn','pip'],
+                                    pip_packages=['azureml-defaults','azureml-dataprep[pandas]'])
+sklearn_env.python.conda_dependencies = packages
+
+# Get the training dataset
+ds = ws.datasets.get("mainMlDataSet")
+
+# Create a script config
+script_config = ScriptRunConfig(source_directory=experiment_folder,
+                                script='vascProsth_training.py',
+                                # Add non-hyperparameter arguments -in this case, the training dataset
+                                arguments = ['--input-data', ds.as_named_input('training_data')],
+                                environment=sklearn_env,
+                                compute_target = training_cluster)
+
+
+
+# Sample a range of parameter values
+params = BayesianParameterSampling(
+    {
+        # Hyperdrive will try  combinations, adding these as script arguments
+        '--max_depth': choice(1 ,2,3,4,5,6,7,8,9),
+        '--min_samples_split' : choice(2,3,4,5,6,7,8,9,10,11,12,13,14,15),
+        '--min_impurity_decrease' : choice(0.00005,0.0001,0.0002,0.0005,0.001,0.0015,0.002,0.005,0.01)
+    }
+)
+
+# Configure hyperdrive settings
+hyperdrive = HyperDriveConfig(run_config=script_config, 
+                          hyperparameter_sampling=params, 
+                          policy=None, # No early stopping policy
+                          primary_metric_name='AUC', # Find the highest AUC metric
+                          primary_metric_goal=PrimaryMetricGoal.MAXIMIZE, 
+                          max_total_runs=50, # Restict the experiment to 200 iterations
+                          max_concurrent_runs=2) # Run up to 2 iterations in parallel
+
+# Run the experiment
+experiment = Experiment(workspace=ws, name='mslearn-vascProsth-hyperdrive')
+run = experiment.submit(config=hyperdrive)
+
+# Show the status in the notebook as the experiment runs
+RunDetails(run).show()
+run.wait_for_completion()
+
+```
+
+## Model interpretability
+
+In order to make model expleinable we choose optimal hyperparameters calculated in a previous step and using the TabularExplainer we are anylizing the features importance
+
+First we use the previously prepared script just now we flag that it needs to include Tabular Interpreter.
+```
+# Create a Python environment for the experiment
+explain_env = Environment("explain-env")
+
+# Create a set of package dependencies (including the azureml-interpret package)
+packages = CondaDependencies.create(conda_packages=['scikit-learn','pandas','pip'],
+                                    pip_packages=['azureml-defaults','azureml-interpret'])
+explain_env.python.conda_dependencies = packages
+
+
+ds = ws.datasets.get("mainMlDataSet")
+
+max_depth = bestRunDetails[3]
+min_samples_split = bestRunDetails[5]
+min_impurity_decrease = bestRunDetails[7]
+
+# Create a script config
+script_config = ScriptRunConfig(source_directory=experiment_folder,
+                      script='vascProsth_training.py'
+                      ,arguments=['--input-data', ds.as_named_input('training_data')
+                                 ,'--max_depth',max_depth
+                                 ,'--min_samples_split',min_samples_split
+                                 ,  '--min_impurity_decrease',min_impurity_decrease
+                                  ,'--isToExplain',True
+                                 ],
+                       environment=explain_env) 
+
+# submit the experiment
+experiment_name = 'mslearn-vascProsth-explain'
+experiment = Experiment(workspace=ws, name=experiment_name)
+run = experiment.submit(config=script_config)
+RunDetails(run).show()
+run.wait_for_completion()
+
+
+```
+After experiment is completed we can look through feature importance
+```
+# Get the feature explanations
+client = ExplanationClient.from_run(run)
+engineered_explanations = client.download_model_explanation()
+feature_importances = engineered_explanations.get_feature_importance_dict()
+
+# Overall feature importance
+print('Feature\tImportance')
+for key, value in feature_importances.items():
+    print(key, '\t', value)
+
+```
+
+
 
 
 
