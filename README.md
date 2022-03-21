@@ -808,7 +808,7 @@ First we need to supply appropriate data for power bi to connect to data in data
 ![image](https://user-images.githubusercontent.com/53857487/115992382-c102d880-a5cd-11eb-9505-baa7d2944ae8.png)
 
 
-Below some example of powe Bi visualizations
+Below some example of power Bi visualizations
 
 ![image](https://user-images.githubusercontent.com/53857487/115993117-9fa3eb80-a5d1-11eb-9e89-6aeee838ebac.png)
 
