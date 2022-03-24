@@ -12,19 +12,17 @@ The study is retrospective were both in control and study group the FDG-PET/CT w
 As we see on the graph we first copy data from input (excel file - the fomrat used in clinical practice)  to a format that can be consumed by the databricks, databricks notebook first clean data than check its quality and look for any outliers,, to create data summaries and perform statistical hypothesis testing. It is also shown how the ML pipelinee can be connected, actual code of the jupiter notebook with model training will be described below.
 
 
-
-
 # Key Vault
-In order to keep safely all keys all keys and certificates are stored in Azure Key vault 
+For safety all keys and certificates are stored in Azure Key vault 
 
 ## Access policies
-First step is to provide Access policies  for all required services like Synapse Analytics , Azure MAchine learning etc.
+First step is to provide Access policies for all required services like Synapse Analytics , Azure MAchine learning etc.
 
 ![image](https://user-images.githubusercontent.com/53857487/115953879-59c22700-a4ee-11eb-9866-74976330c04d.png)
 
 
 ## DataBricks integration
-In order to enable integration of Databricks with azure keyvoult we need a premium account and also access the create scope in the Databricks via pasting appropriate url as shown below
+In order to enable integration of Databricks with azure key vault we need a premium account and access to create scope in the Databricks via pasting appropriate url as shown below
 
 ![image](https://user-images.githubusercontent.com/53857487/115957830-07d8cb80-a505-11eb-9a0f-eb05fe62fc5b.png)
 
@@ -75,20 +73,20 @@ Next we need to copy data from datasets to appropriate CSV files (databricks are
 
 ### outputData from copy data activity
 
-In order to  parse corretly the data that we have we formatted the output datasets (output from copy data activity)
+In order to  parse corretly the data we formatted the output datasets (output from copy data activity)
 
 
 ![image](https://user-images.githubusercontent.com/53857487/115965234-7d09c800-a528-11eb-9adb-10d464dccbe6.png)
 
 
-The effect of this operation is to put into linked blob storage the proper files 
+The effect of this operation is to put proper files into linked blob storage.
 
 ![image](https://user-images.githubusercontent.com/53857487/115965356-251f9100-a529-11eb-9ebb-c281c879fb7a.png)
 
 ##  Databricks blob integration
 
-Now we nheed to connect the Databricks into our blob storage the access to the azure keyvoult was already established hence we will use it here
-First we need to define all necessary constance
+Now we nheed to connect the Databricks into blob storage. The access to the azure key vault was already established hence we will use it here
+First we need to define all necessary constants.
 ```
 val containerName = "mainblob"
 val storageAccountName = "vascpathstorage"
@@ -98,7 +96,7 @@ val url = "wasbs://" + containerName + "@" + storageAccountName + ".blob.core.wi
 var config = "fs.azure.account.key." + storageAccountName + ".blob.core.windows.net"
 
 ```
-Then If storage is not yet mounted we mount it
+Then if storage is not yet mounted we do it.
 
 ```
 val myMountPoint = "/mnt/myblob"
@@ -161,18 +159,18 @@ return spark.sql("select "+ (primListt ++ frame.columns.filterNot(it=>listOfCols
 ```
 
 
-this will be applied to manually defined inside the databricks notebooks steps pointed out on the picture below
+This will be applied to manually defined column names inside the databricks notebooks steps as pointed out on the picture below
 
 ![image](https://user-images.githubusercontent.com/53857487/115966448-e50edd00-a52d-11eb-8ca8-99ccb7297946.png)
 
 
 # Data quality and outliers
-One more important step to complete before applying statistical analysis is to properly asses the quality of data  
+One more important step to complete before applying statistical analysis is to properly asses the quality of the data  
 1) the amount of null values in columns where it should not be present
 2) presence or absence of outliers in this case measured with z score 
-3) wheathe numerical data is within manually defined bounds (that are set on the basis of domain knowledge)
+3) wheather numerical data is within manually defined bounds (that are set on the basis of domain knowledge)
 
-For obvius reasons the columns and bounds needed to be chosen manually, all of the results would be saved into the delta table. The functions that are used in order to achieved are stored in utils notebook and also presented below
+For obvius reasons the columns and bounds needed to be chosen manually, all of the results would be saved into the delta table. The functions that are used in order to achieved are stored in utils notebook and also presented below.
 
 ```
 /**
@@ -220,7 +218,7 @@ return columnNames.map{colName=>
 
 # Data Summaries
 
-Now when data is prepared summeries will be created  in order to achieve this goal multiple utility functions were defined
+Now when data is prepared summaries will be created  in order to achieve this goal multiple utility functions were defined
 
 ```
 *table names with given desctiption will also be added to the myPhdStatistics meta data
@@ -318,7 +316,7 @@ def  myCount (c : Column) : Column = count(c)// wrapper to get around compiler u
 
 
 ```
-Basically depending on the context multiple features were analyzed and compared  divided ussually on the basis of some categorical data like for example visual scales described in medical literature, below example of such aggregation. Also as can be seen in the utility functions  all data will be saved to the respective delta tables and metadata about those tables will also be aggregated in meta data delta table. Example of such aggregation below where we compare the SUV max and tumor to background ration in control and study groups. All of the analyzed  features can be found in dataSummaries1 notebook.
+Depending on the context multiple features were analyzed and compared  divided ussually on the basis of some categorical data like for example visual scales described in medical literature, below example of such aggregation. Also as can be seen in the utility functions  all data will be saved to the respective delta tables and metadata about those tables will also be aggregated in meta data delta table. Example of such aggregation can be seen below where we compare the SUV max and tumor to background ratio in control and study groups. All of the analyzed  features can be found in dataSummaries1 notebook.
 
 
 ```
@@ -338,7 +336,7 @@ createTableCategorized(tableName = "SuvVsVisualScalesControlGroup",
 
 # Preparing data for Hypothesis testing and predictive statistics
 
-Some a bit more complicated aggregations are performed in HypothesisTestingPrediction notebook for example below we are standardizing column names between study and control groups in order to be able to later efficiently compare diffrences in characteristics of those groups.
+More complicated aggregations are performed in HypothesisTestingPrediction notebook for example below we are standardizing column names between study and control groups in order to be able to later efficiently compare diffrences in characteristics of those groups.
 
 ```
 val colsInControl = List(                         ("SUV protezy", "SuvInFocus"), 
@@ -394,7 +392,7 @@ createTablesWithMeta ("contrAndStudyNumbsFrame", "Does age of patient during sur
 
 # Hypothesis testing
 Hypothesis testing was performed in R as the libraries for hypothesis testing is richer in this enviroment, all of the code is available in "Hypothesis testing R" notebook .
-Multiple two sided hypotheses were tested using in most cases non parametric permutation tasts with structure‐adaptive Benjamini–Hochberg algorithm [1] (algorithm copied from authors repository). 
+Multiple two sided hypotheses were tested using in most cases non parametric permutation tests corrected with structure‐adaptive Benjamini–Hochberg algorithm [1] (algorithm copied from authors repository). 
 
 ```
 # based on the implementation from perm test https://cran.r-project.org/web/packages/perm/perm.pdf
@@ -437,7 +435,7 @@ labels[SABHA_Res ==1]
 
 ```
 
-permanova function was also attempted yet becouse of results of beta dispersion the results were not included
+permanova function was also attempted yet becouse beta dispersion values results were not included
 
 ```
 # performing the Permanova - method detecting weather there is a relation between some value and group of other values
@@ -461,7 +459,7 @@ reducedFr <-  mainFrame %>% dplyr::select(-all_of(referenceColumnName)) # %>% as
 }
 
 ```
-In case of the binary data to perform hypothesis fisher test was used.
+In case of the binary data fisher test was used to perform hypothesis test.
 
 The analysis of optimal treshold cut off value of SUV max and TBR was also performed, minimizing both false postive and false negative results in this clinical setting was considered equally important.
 
